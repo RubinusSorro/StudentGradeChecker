@@ -54,6 +54,7 @@ public class MainApp extends JFrame {
     private JTextField usernameField;
     private JPasswordField passwordField;
     private JButton loginButton; // exposed so frame can set it as default button
+    private JButton adminButton;
 
     private int currentStudentId = -1;
     private String currentStudentName = "";
@@ -153,9 +154,9 @@ public class MainApp extends JFrame {
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
 
         // Input fields centered with light backgrounds and icons
-        studentNumberField = createInputFieldWithIcon("", "/assets/id.png");
-        usernameField = createInputFieldWithIcon("", "/assets/user.png");
-        passwordField = createPasswordFieldWithIcon("", "/assets/lock.png");
+        studentNumberField = createInputFieldWithIcon("", "/assets/icons/id.png");
+        usernameField = createInputFieldWithIcon("", "/assets/icons/user.png");
+        passwordField = createPasswordFieldWithIcon("", "/assets/icons/lock.png");
 
         // Style inputs to look like the design (wider and with margin)
         Dimension inpDim = new Dimension(380, 44); // Slightly taller
@@ -207,10 +208,15 @@ public class MainApp extends JFrame {
         showPass.setFont(FONT_UI);
         final char defaultEcho = passwordField.getEchoChar();
         showPass.addActionListener(ev -> {
-            if (showPass.isSelected())
+            if (showPass.isSelected()) {
                 passwordField.setEchoChar((char) 0);
-            else
+                // showPass.setIcon(loadIconResource("/assets/icons/show-password.png", 16,
+                // 16));
+            } else {
                 passwordField.setEchoChar(defaultEcho);
+                // showPass.setIcon(loadIconResource("/assets/icons/hide-password.png", 16,
+                // 16));
+            }
         });
         passRow.add(showPass);
         inputsWrap.add(passRow);
@@ -224,11 +230,22 @@ public class MainApp extends JFrame {
         loginButton.addActionListener(e -> attemptLogin());
         loginButton.setToolTipText("Press Enter to login");
 
-        // Assemble card
+        // Admin button - stacked below LOGIN button
+        adminButton = createGradientButton("ADMIN");
+        adminButton.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        adminButton.setPreferredSize(new Dimension(180, 50));
+        adminButton.setMaximumSize(new Dimension(180, 50));
+        adminButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        adminButton.addActionListener(e -> openAdminPanel());
+        adminButton.setToolTipText("Open Admin Panel");
+
+        // Assemble card with stacked button layout
         card.add(Box.createVerticalGlue());
         card.add(inputsWrap);
         card.add(Box.createVerticalStrut(24)); // More spacing
-        card.add(loginButton);
+        card.add(loginButton);  // LOGIN button first
+        card.add(Box.createVerticalStrut(12)); // Increased spacing between buttons
+        card.add(adminButton);  // ADMIN button below LOGIN
         card.add(Box.createVerticalGlue());
 
         stack.add(logo);
@@ -355,47 +372,15 @@ public class MainApp extends JFrame {
         sidebar.add(logoWrapper);
         sidebar.add(Box.createVerticalStrut(28));
 
-        JButton btnDashboard = createSidebarButton("Dashboard", "/assets/dashboard.png");
-        JButton btnGrades = createSidebarButton("My Grades", "/assets/mygrades.png");
-        JButton btnGWA = createSidebarButton("GWA Calculator", "/assets/gwacalculator.png");
-        JButton btnSettings = createSidebarButton("Settings", "/assets/settings.png");
-        JButton btnLogout = createSidebarButton("Logout", "/assets/icon_logout.png");
+        JButton btnDashboard = createSidebarButton("Dashboard", "/assets/icons/dashboard.png");
+        JButton btnMyGrades = createSidebarButton("My Grades", "/assets/icons/mygrades.png");
+        JButton btnGwaCalculator = createSidebarButton("GWA Calculator", "/assets/icons/gwacalculator.png");
+        JButton btnSettings = createSidebarButton("Settings", "/assets/icons/settings.png");
+        JButton btnLogout = createSidebarButton("Logout", "/assets/icons/logout.png");
 
-        sidebar.add(btnDashboard);
-        sidebar.add(Box.createVerticalStrut(8));
-        sidebar.add(btnGrades);
-        sidebar.add(Box.createVerticalStrut(8));
-        sidebar.add(btnGWA);
-        sidebar.add(Box.createVerticalStrut(8));
-        sidebar.add(btnSettings);
-        sidebar.add(Box.createVerticalGlue());
-        sidebar.add(btnLogout);
-        sidebar.add(Box.createVerticalStrut(28));
-
-        mainPanel.add(sidebar, BorderLayout.WEST);
-
-        // --- Content ---
-        contentLayout = new CardLayout();
-        contentPanel = new JPanel(contentLayout);
-
-        contentPanel.setBackground(BG_LIGHT);
-        contentPanel.add(createDashboardPanel(), "Dashboard");
-        contentPanel.add(createGradesPanel(), "Grades");
-        contentPanel.add(createGWAPanel(), "GWA");
-        contentPanel.add(createSettingsPanel(), "Settings");
-
-        mainPanel.add(contentPanel, BorderLayout.CENTER);
-
-        // Sidebar actions
-        btnDashboard.addActionListener(e -> {
-            contentLayout.show(contentPanel, "Dashboard");
-            updateDashboardStats();
-        });
-        btnGrades.addActionListener(e -> {
-            contentLayout.show(contentPanel, "Grades");
-            refreshGradesForCurrentStudent();
-        });
-        btnGWA.addActionListener(e -> contentLayout.show(contentPanel, "GWA"));
+        btnDashboard.addActionListener(e -> contentLayout.show(contentPanel, "Dashboard"));
+        btnMyGrades.addActionListener(e -> contentLayout.show(contentPanel, "MyGrades"));
+        btnGwaCalculator.addActionListener(e -> contentLayout.show(contentPanel, "GWA"));
         btnSettings.addActionListener(e -> contentLayout.show(contentPanel, "Settings"));
         btnLogout.addActionListener(e -> {
             currentStudentId = -1;
@@ -413,6 +398,33 @@ public class MainApp extends JFrame {
                 lblCoursesStat.setText("—");
             mainLayout.show(rootPanel, "Login");
         });
+
+        sidebar.add(btnDashboard);
+        sidebar.add(Box.createVerticalStrut(12));
+        sidebar.add(btnMyGrades);
+        sidebar.add(Box.createVerticalStrut(12));
+        sidebar.add(btnGwaCalculator);
+        sidebar.add(Box.createVerticalStrut(12));
+        sidebar.add(btnSettings);
+        sidebar.add(Box.createVerticalGlue());
+        sidebar.add(btnLogout);
+        sidebar.add(Box.createVerticalStrut(20));
+
+        mainPanel.add(sidebar, BorderLayout.WEST);
+
+        // --- Content Panel ---
+        contentLayout = new CardLayout();
+        contentPanel = new JPanel(contentLayout);
+        contentPanel.setBackground(BG_LIGHT);
+
+        // Add all the different panels to the content panel
+        contentPanel.add(createDashboardPanel(), "Dashboard");
+        contentPanel.add(createGradesPanel(), "MyGrades");
+        contentPanel.add(createGWAPanel(), "GWA");
+        contentPanel.add(createSettingsPanel(), "Settings");
+        contentPanel.add(createAdminPanel(), "Admin");
+
+        mainPanel.add(contentPanel, BorderLayout.CENTER);
 
         return mainPanel;
     }
@@ -648,6 +660,56 @@ public class MainApp extends JFrame {
         panel.add(Box.createVerticalStrut(15));
         panel.add(darkModeToggle);
 
+        return panel;
+    }
+
+    private void openAdminPanel() {
+        contentLayout.show(contentPanel, "Admin");
+    }
+
+    private JPanel createAdminPanel() {
+        JPanel panel = new JPanel(new BorderLayout(20, 20));
+        panel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        panel.setBackground(isDarkMode ? BG_DARK : BG_LIGHT);
+
+        JLabel title = new JLabel("Admin Panel", SwingConstants.CENTER);
+        title.setFont(FONT_HEADING);
+        title.setForeground(isDarkMode ? TEXT_LIGHT : TEXT_DARK);
+        panel.add(title, BorderLayout.NORTH);
+
+        JTabbedPane tabbedPane = new JTabbedPane();
+        tabbedPane.setFont(FONT_UI);
+        tabbedPane.addTab("Manage Students", createManageStudentsPanel());
+        tabbedPane.addTab("Manage Grades", createManageGradesPanel());
+
+        panel.add(tabbedPane, BorderLayout.CENTER);
+
+        return panel;
+    }
+
+    private JPanel createManageStudentsPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(isDarkMode ? BG_DARK : BG_LIGHT);
+        // Add student management components here (e.g., a table of students,
+        // add/edit/delete buttons)
+        JLabel placeholder = new JLabel("Student management functionality to be implemented here.",
+                SwingConstants.CENTER);
+        placeholder.setFont(FONT_UI);
+        placeholder.setForeground(isDarkMode ? TEXT_LIGHT : TEXT_DARK);
+        panel.add(placeholder, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private JPanel createManageGradesPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(isDarkMode ? BG_DARK : BG_LIGHT);
+        // Add grade management components here (e.g., a table of grades,
+        // add/edit/delete buttons)
+        JLabel placeholder = new JLabel("Grade management functionality to be implemented here.",
+                SwingConstants.CENTER);
+        placeholder.setFont(FONT_UI);
+        placeholder.setForeground(isDarkMode ? TEXT_LIGHT : TEXT_DARK);
+        panel.add(placeholder, BorderLayout.CENTER);
         return panel;
     }
 
